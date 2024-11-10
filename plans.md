@@ -1,19 +1,12 @@
-## Project Plan
+You have a bunch of files that you want to search efficiently.
+So, you have code that reads them over, storing the connections between words and filenames.
+This requires you to have a connector between the words and the filenames.
+Additionally, you have code to save the connections and load them so that the files don't all need to be reread.
+From there, you have a search engine that uses those connections to allow you to search.
+Finally, you create a user interface for that search engine.
 
-### 1. Create a Map with Parsed Terms
-- Parse the terms from the input files.
-- Use the parsed terms as keys in a map.
-- Store a list of file paths (as strings) as the values associated with each key.
-
-### 2. Persist the Map
-- Implement a method to save the map to a file or database.
-- Ensure the map can be loaded from the saved state, avoiding the need to recreate it every time the program runs.
-
-### 3. Develop a Parser
-- Create a parser that reads the input files.
-- Extract and return important information from the files.
-
-### 4. Build a User Interface
-- Design a user interface that presents options to the user.
-- Display some text from the files to provide context.
-- Allow the user to make selections based on the presented options.
+So, you have:
+A wordmap that allows for inserting, removing, saving, and loading.
+A search engine that loads in its constructor and saves in its destructor.
+If the search engine cannot load in its constructor, it reads all the files, building the wordmap from the ground up.
+A GUI similar to google that allows you to search for files in your search engine.
