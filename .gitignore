@@ -1,3 +1,5 @@
 docs/
 rapidjson/
-savefile.csv
+nsavefile.csv
+osavefile.csv
+wsavefile.csv

@@ -11,15 +11,21 @@
 
 class WordMap {
 private:
+    std::unordered_map<std::string, std::unordered_set<std::string>> orgmap;
+    std::unordered_map<std::string, std::unordered_set<std::string>> namemap;
     std::unordered_map<std::string, std::unordered_set<std::string>> wordmap;
 public:
     WordMap();
     ~WordMap();
-    void associate(const std::string &word, const std::string &filepath);
+    void associateOrg(const std::string &org, const std::string &filepath);
+    void associateName(const std::string &name, const std::string &filepath);
+    void associateWord(const std::string &word, const std::string &filepath);
     void disassociate(const std::string &word, const std::string &filepath);
-    std::unordered_set<std::string> getFiles(const std::string &word) const;
-    void save(const std::string &filepath) const;
-    bool load(const std::string &filepath);
+    std::unordered_set<std::string> getFilesByOrg(const std::string &word) const;
+    std::unordered_set<std::string> getFilesByName(const std::string &word) const;
+    std::unordered_set<std::string> getFilesByWord(const std::string &word) const;
+    void save(const std::string &ofilepath, const std::string &nfilepath, const std::string &wfilepath) const;
+    bool load(const std::string &ofilepath, const std::string &nfilepath, const std::string &wfilepath);
 };
 
 #endif // _WORDMAP_H_

@@ -1,24 +1,17 @@
 #include "searchEngine.h"
-#include "rapidjson/document.h" // Assuming you are using a JSON library like RapidJSON
+#include "rapidjson/document.h"
 #include "rapidjson/istreamwrapper.h"
-//#include <json/json.h> // Assuming you are using a JSON library like jsoncpp
 
 namespace fs = std::filesystem;
 
-SearchEngine::SearchEngine(const std::string& savePath, const std::string& folderPath) {
-    if (!wordMap.load(savePath)) {
+SearchEngine::SearchEngine(const std::string& folderPath, const std::string& osavePath, const std::string& nsavePath, const std::string& wsavePath) {
+    if (!wordMap.load(osavePath, nsavePath, wsavePath)) {
         buildFromScratch(folderPath);
-        wordMap.save(savePath);
+        wordMap.save(osavePath, nsavePath, wsavePath);
     }
 }
 
-SearchEngine::~SearchEngine() {
-    // Destructor logic if needed
-}
-
-void SearchEngine::save(const std::string& savePath) const {
-    wordMap.save(savePath);
-}
+SearchEngine::~SearchEngine() {}
 
 std::unordered_set<std::string> SearchEngine::search(const std::string& searchTerms) const {
     std::unordered_set<std::string> result;
@@ -30,7 +23,15 @@ std::unordered_set<std::string> SearchEngine::search(const std::string& searchTe
 
     bool firstTerm = true;
     for (const auto& term : terms) {
-        std::unordered_set<std::string> files = wordMap.getFiles(term);
+        std::unordered_set<std::string> files;
+        if (term.rfind("ORG:", 0) == 0) {
+            files = wordMap.getFilesByOrg(term.substr(4));
+        } else if (term.rfind("PERSON:", 0) == 0) {
+            files = wordMap.getFilesByName(term.substr(7));
+        } else {
+            files = wordMap.getFilesByWord(term);
+        }
+        
         if (firstTerm) {
             result = files;
             firstTerm = false;
@@ -55,9 +56,18 @@ void SearchEngine::buildFromScratch(const std::string& folderPath) {
     for (const auto& entry : fs::recursive_directory_iterator(folderPath)) {
         if (entry.is_regular_file()) {
             std::string filePath = entry.path().string();
-            std::unordered_set<std::string> words = getRelevantWords(filePath);
-            for (const auto& word : words) {
-                wordMap.associate(word, filePath);
+
+            std::vector<std::unordered_set<std::string>> words = getRelevantData(filePath);
+            for (const auto& word : words[0]) {
+                wordMap.associateOrg(word, filePath);
+            }
+
+            for (const auto& word : words[1]) {
+                wordMap.associateName(word, filePath);
+            }
+
+            for (const auto& word : words[2]) {
+                wordMap.associateWord(word, filePath);
             }
         }
     }
@@ -77,7 +87,7 @@ std::unordered_set<std::string> SearchEngine::parse(const std::string& searchTer
     return terms;
 }
 
-void extractWords(const rapidjson::Value& value, std::unordered_set<std::string>& words) {
+void extractWords(const rapidjson::Value& value, std::vector<std::unordered_set<std::string>>& words, const std::string& currentPath = "") {
     if (value.IsString()) {
         std::istringstream iss(value.GetString());
         std::string word;
@@ -89,21 +99,27 @@ void extractWords(const rapidjson::Value& value, std::unordered_set<std::string>
             word.erase(std::find_if(word.rbegin(), word.rend(), [](unsigned char ch) {
                 return !std::ispunct(ch);
             }).base(), word.end());
-            words.insert(word);
+
+            if (currentPath.find("entities.organizations") != std::string::npos && currentPath.find("name") != std::string::npos) {
+                words[0].insert(word);
+            } else if (currentPath.find("entities.persons") != std::string::npos && currentPath.find("name") != std::string::npos) {
+                words[1].insert(word);
+            }
+            words[2].insert(word);
         }
     } else if (value.IsObject()) {
         for (auto it = value.MemberBegin(); it != value.MemberEnd(); ++it) {
-            extractWords(it->value, words);
+            extractWords(it->value, words, currentPath.empty() ? it->name.GetString() : currentPath + "." + it->name.GetString());
         }
     } else if (value.IsArray()) {
-        for (auto& v : value.GetArray()) {
-            extractWords(v, words);
+        for (rapidjson::SizeType i = 0; i < value.Size(); ++i) {
+            extractWords(value[i], words, currentPath + "[" + std::to_string(i) + "]");
         }
     }
 }
 
-std::unordered_set<std::string> SearchEngine::getRelevantWords(const std::string& filePath) const {
-    std::unordered_set<std::string> words;
+std::vector<std::unordered_set<std::string>> SearchEngine::getRelevantData(const std::string& filePath) const {
+    std::vector<std::unordered_set<std::string>> words(3);
     std::ifstream file(filePath);
     if (!file.is_open()) {
         std::cerr << "Failed to open file: " << filePath << std::endl;

@@ -2,19 +2,17 @@
 #define SEARCHENGINE_H
 
 #include "wordmap.h"
+#include <vector>
 #include <filesystem>
 #include <algorithm>
 
 class SearchEngine {
 public:
     // Constructor
-    SearchEngine(const std::string& savePath, const std::string& folderPath);
+    SearchEngine(const std::string& folderPath, const std::string& osavePath, const std::string& nsavePath, const std::string& wsavePath);
 
     // Destructor
     ~SearchEngine();
-
-    // Function to save data
-    void save(const std::string& savePath) const;
 
     // Function to search for a word
     std::unordered_set<std::string> search(const std::string& searchTerms) const;
@@ -29,7 +27,7 @@ private:
     std::unordered_set<std::string> parse(const std::string& searchTerms) const;
 
     // Helper function to process JSON data
-    std::unordered_set<std::string> getRelevantWords(const std::string& filePath) const;
+    std::vector<std::unordered_set<std::string>> getRelevantData(const std::string& filePath) const;
 };
 
 #endif // SEARCHENGINE_H
