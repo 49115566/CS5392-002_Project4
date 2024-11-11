@@ -4,16 +4,18 @@
 
 namespace fs = std::filesystem;
 
-SearchEngine::SearchEngine(const std::string& folderPath, const std::string& osavePath, const std::string& nsavePath, const std::string& wsavePath) {
-    if (!wordMap.load(osavePath, nsavePath, wsavePath)) {
+SearchEngine::SearchEngine(const std::string& folderPath, const std::string &filenamepath, const std::string& osavePath, const std::string& nsavePath, const std::string& wsavePath) {
+    if (!wordMap.load(filenamepath, osavePath, nsavePath, wsavePath)) {
         buildFromScratch(folderPath);
-        wordMap.save(osavePath, nsavePath, wsavePath);
+        wordMap.save(filenamepath, osavePath, nsavePath, wsavePath);
     }
 }
 
 SearchEngine::~SearchEngine() {}
 
 std::unordered_set<std::string> SearchEngine::search(const std::string& searchTerms) const {
+    auto start = std::chrono::high_resolution_clock::now();
+
     std::unordered_set<std::string> result;
     std::unordered_set<std::string> terms = parse(searchTerms);
 
@@ -28,10 +30,12 @@ std::unordered_set<std::string> SearchEngine::search(const std::string& searchTe
             files = wordMap.getFilesByOrg(term.substr(4));
         } else if (term.rfind("PERSON:", 0) == 0) {
             files = wordMap.getFilesByName(term.substr(7));
+        } else if (term.rfind("-", 0) == 0) {
+            files = wordMap.getOtherFilesByWord(term.substr(1));
         } else {
             files = wordMap.getFilesByWord(term);
         }
-        
+
         if (firstTerm) {
             result = files;
             firstTerm = false;
@@ -45,6 +49,10 @@ std::unordered_set<std::string> SearchEngine::search(const std::string& searchTe
             result = intersection;
         }
     }
+    
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration = end - start;
+    std::cout << result.size() << " results for " << searchTerms << " in " << duration.count() << " seconds.\n";
 
     return result;
 }

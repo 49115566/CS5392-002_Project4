@@ -9,7 +9,7 @@
 class SearchEngine {
 public:
     // Constructor
-    SearchEngine(const std::string& folderPath, const std::string& osavePath, const std::string& nsavePath, const std::string& wsavePath);
+    SearchEngine(const std::string& folderPath, const std::string& filenamepath, const std::string& osavePath, const std::string& nsavePath, const std::string& wsavePath);
 
     // Destructor
     ~SearchEngine();

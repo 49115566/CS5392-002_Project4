@@ -4,7 +4,7 @@
 #include <string>
 
 int main() {
-    SearchEngine searchEngine("docs", "osavefile.csv", "nsavefile.csv", "wsavefile.csv");
+    SearchEngine searchEngine("docs", "fnsavefile.csv", "osavefile.csv", "nsavefile.csv", "wsavefile.csv");
 
     std::string query;
     char choice;

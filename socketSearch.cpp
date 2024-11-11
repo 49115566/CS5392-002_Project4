@@ -12,7 +12,7 @@
 #define BUFFER_SIZE 1024
 
 int main() {
-    SearchEngine searchEngine("docs", "osavefile.csv", "nsavefile.csv", "wsavefile.csv");
+    SearchEngine searchEngine("docs", "fnsavefile.csv", "osavefile.csv", "nsavefile.csv", "wsavefile.csv");
 
     int server_fd, new_socket;
     struct sockaddr_in address;
