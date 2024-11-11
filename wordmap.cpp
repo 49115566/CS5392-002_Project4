@@ -5,30 +5,36 @@ WordMap::WordMap() {}
 WordMap::~WordMap() {}
 
 void WordMap::associateOrg(const std::string &org, const std::string &filepath) {
-    if(toid.find(filepath) == toid.end()) {
-        toid[filepath] = toid.size();
-        tofile[toid[filepath]] = filepath;
+    auto it = toid.find(filepath);
+    if(it == toid.end()) {
+        size_t id = toid.size();
+        it = toid.emplace(filepath, id).first;
+        tofile[id] = filepath;
     }
 
-    orgmap[org].insert(toid[filepath]);
+    orgmap[org].emplace(it->second);
 }
 
 void WordMap::associateName(const std::string &name, const std::string &filepath) {
-    if(toid.find(filepath) == toid.end()) {
-        toid[filepath] = toid.size();
-        tofile[toid[filepath]] = filepath;
+    auto it = toid.find(filepath);
+    if(it == toid.end()) {
+        size_t id = toid.size();
+        it = toid.emplace(filepath, id).first;
+        tofile[id] = filepath;
     }
 
-    namemap[name].insert(toid[filepath]);
+    namemap[name].emplace(it->second);
 }
 
 void WordMap::associateWord(const std::string &word, const std::string &filepath) {
-    if(toid.find(filepath) == toid.end()) {
-        toid[filepath] = toid.size();
-        tofile[toid[filepath]] = filepath;
+    auto it = toid.find(filepath);
+    if(it == toid.end()) {
+        size_t id = toid.size();
+        it = toid.emplace(filepath, id).first;
+        tofile[id] = filepath;
     }
 
-    wordmap[word].insert(toid[filepath]);
+    wordmap[word].emplace(it->second);
 }
 
 void WordMap::disassociate(const std::string &word, const std::string &filepath) {

@@ -1,51 +1,23 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QPushButton, QTextEdit, QListWidget, QMessageBox
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QPushButton, QTextEdit, QListView, QMessageBox, QHBoxLayout, QLabel
+from PyQt5.QtCore import QThread, pyqtSignal, QAbstractListModel, Qt
 import socket
 import os
 import json
 
-class SearchGUI(QWidget):
-    def __init__(self):
+class SearchThread(QThread):
+    results_ready = pyqtSignal(str)
+
+    def __init__(self, query):
         super().__init__()
-        self.initUI()
+        self.query = query
 
-    def initUI(self):
-        self.setWindowTitle('Search Engine')
-        self.setGeometry(100, 100, 600, 400)
-
-        layout = QVBoxLayout()
-
-        self.queryInput = QLineEdit(self)
-        self.queryInput.setPlaceholderText('Enter search query')
-        layout.addWidget(self.queryInput)
-
-        self.searchButton = QPushButton('Search', self)
-        self.searchButton.clicked.connect(self.performSearch)
-        layout.addWidget(self.searchButton)
-
-        self.resultsList = QListWidget(self)
-        self.resultsList.itemDoubleClicked.connect(self.viewFile)
-        layout.addWidget(self.resultsList)
-
-        self.fileContent = QTextEdit(self)
-        self.fileContent.setReadOnly(True)
-        layout.addWidget(self.fileContent)
-
-        self.setLayout(layout)
-
-    def performSearch(self):
-        query = self.queryInput.text()
-        if query:
-            results = self.sendQueryToBackend(query)
-            self.resultsList.clear()
-            for result in results.split('\n'):
-                if result.strip():
-                    self.resultsList.addItem(result)
-        else:
-            QMessageBox.warning(self, 'Input Error', 'Please enter a search query.')
+    def run(self):
+        results = self.sendQueryToBackend(self.query)
+        self.results_ready.emit(results)
 
     def sendQueryToBackend(self, query):
-        BUFFER_SIZE = 4096
+        BUFFER_SIZE = 8192  # Increased buffer size
         data = b""
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect(('localhost', 12345))
@@ -57,8 +29,115 @@ class SearchGUI(QWidget):
                     break
         return data.decode()
 
-    def viewFile(self, item):
-        file_path = item.text()
+class ResultsModel(QAbstractListModel):
+    def __init__(self, results=None, parent=None):
+        super().__init__(parent)
+        self.results = results or []
+
+    def rowCount(self, parent=None):
+        return len(self.results)
+
+    def data(self, index, role):
+        if role == Qt.DisplayRole:
+            return self.results[index.row()]
+
+class SearchGUI(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.results = []
+        self.current_page = 0
+        self.results_per_page = 100  # Adjust this number as needed
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle('Search Engine')
+        self.setGeometry(100, 100, 600, 400)
+
+        layout = QVBoxLayout()
+
+        query_label = QLabel('Search Query:', self)
+        layout.addWidget(query_label)
+
+        self.queryInput = QLineEdit(self)
+        self.queryInput.setPlaceholderText('Enter search query')
+        self.queryInput.setToolTip('Type your search query here')
+        layout.addWidget(self.queryInput)
+
+        self.searchButton = QPushButton('Search', self)
+        self.searchButton.setToolTip('Click to perform search')
+        self.searchButton.clicked.connect(self.performSearch)
+        layout.addWidget(self.searchButton)
+
+        results_label = QLabel('Search Results:', self)
+        layout.addWidget(results_label)
+
+        self.resultsList = QListView(self)
+        self.resultsList.setToolTip('Double-click to view file content')
+        self.resultsList.setModel(ResultsModel(self.results))
+        self.resultsList.doubleClicked.connect(self.viewFile)
+        layout.addWidget(self.resultsList)
+
+        file_content_label = QLabel('File Content:', self)
+        layout.addWidget(file_content_label)
+
+        self.fileContent = QTextEdit(self)
+        self.fileContent.setReadOnly(True)
+        layout.addWidget(self.fileContent)
+
+        nav_layout = QHBoxLayout()
+        self.prevButton = QPushButton('Previous', self)
+        self.prevButton.setToolTip('Go to previous page of results')
+        self.prevButton.clicked.connect(self.prevPage)
+        nav_layout.addWidget(self.prevButton)
+
+        self.nextButton = QPushButton('Next', self)
+        self.nextButton.setToolTip('Go to next page of results')
+        self.nextButton.clicked.connect(self.nextPage)
+        nav_layout.addWidget(self.nextButton)
+
+        self.pageInfoLabel = QLabel(self)
+        nav_layout.addWidget(self.pageInfoLabel)
+
+        layout.addLayout(nav_layout)
+
+        self.setLayout(layout)
+
+    def performSearch(self):
+        query = self.queryInput.text()
+        if query:
+            self.searchThread = SearchThread(query)
+            self.searchThread.results_ready.connect(self.handleResults)
+            self.searchThread.start()
+        else:
+            QMessageBox.warning(self, 'Input Error', 'Please enter a search query.')
+
+    def handleResults(self, results):
+        self.results = results.split('\n')
+        self.current_page = 0
+        self.updateResultsList()
+
+    def updateResultsList(self):
+        start_index = self.current_page * self.results_per_page
+        end_index = start_index + self.results_per_page
+        self.resultsList.model().results = self.results[start_index:end_index]
+        self.resultsList.model().layoutChanged.emit()
+        self.prevButton.setEnabled(self.current_page > 0)
+        self.nextButton.setEnabled(end_index < len(self.results))
+        total_pages = (len(self.results) + self.results_per_page - 1) // self.results_per_page
+        self.pageInfoLabel.setText(f"Page {self.current_page + 1} of {total_pages}; {self.results_per_page} results per page")
+
+    def prevPage(self):
+        if self.current_page > 0:
+            self.current_page -= 1
+            self.updateResultsList()
+
+    def nextPage(self):
+        if (self.current_page + 1) * self.results_per_page < len(self.results):
+            self.current_page += 1
+            self.updateResultsList()
+
+    def viewFile(self, index):
+        file_path = self.resultsList.model().data(index, Qt.DisplayRole)
         if os.path.exists(file_path):
             with open(file_path, 'r') as file:
                 content = file.read()
