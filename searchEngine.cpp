@@ -26,9 +26,10 @@ std::unordered_set<std::string> SearchEngine::search(const std::string& searchTe
     bool firstTerm = true;
     for (const auto& term : terms) {
         std::unordered_set<std::string> files;
-        if (term.rfind("ORG:", 0) == 0) {
+        if (term.rfind("org:", 0) == 0) {
             files = wordMap.getFilesByOrg(term.substr(4));
-        } else if (term.rfind("PERSON:", 0) == 0) {
+        } else if (term.rfind("person:", 0) == 0) {
+            std::cout << "Searching for " << term.substr(7) << std::endl;
             files = wordMap.getFilesByName(term.substr(7));
         } else if (term.rfind("-", 0) == 0) {
             files = wordMap.getOtherFilesByWord(term.substr(1));
@@ -67,15 +68,21 @@ void SearchEngine::buildFromScratch(const std::string& folderPath) {
 
             std::vector<std::unordered_set<std::string>> words = getRelevantData(filePath);
             for (const auto& word : words[0]) {
-                wordMap.associateOrg(word, filePath);
+                std::string lowerWord = word;
+                std::transform(lowerWord.begin(), lowerWord.end(), lowerWord.begin(), ::tolower);
+                wordMap.associateOrg(lowerWord, filePath);
             }
 
             for (const auto& word : words[1]) {
-                wordMap.associateName(word, filePath);
+                std::string lowerWord = word;
+                std::transform(lowerWord.begin(), lowerWord.end(), lowerWord.begin(), ::tolower);
+                wordMap.associateName(lowerWord, filePath);
             }
 
             for (const auto& word : words[2]) {
-                wordMap.associateWord(word, filePath);
+                std::string lowerWord = word;
+                std::transform(lowerWord.begin(), lowerWord.end(), lowerWord.begin(), ::tolower);
+                wordMap.associateWord(lowerWord, filePath);
             }
         }
     }
@@ -90,6 +97,7 @@ std::unordered_set<std::string> SearchEngine::parse(const std::string& searchTer
     std::istringstream iss(searchTerms);
     std::string term;
     while (iss >> term) {
+        std::transform(term.begin(), term.end(), term.begin(), ::tolower);
         terms.insert(term);
     }
     return terms;
