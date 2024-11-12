@@ -12,7 +12,7 @@
 #define BUFFER_SIZE 1024 // Define the buffer size
 
 int main() {
-    SearchEngine searchEngine("docs", "fnsavefile.csv", "osavefile.csv", "nsavefile.csv", "wsavefile.csv"); // Initialize the search engine
+    SearchEngine searchEngine("docs", "fnsavefile.csv", "osavefile.csv", "nsavefile.csv", "wsavefile.csv", "fsavefile.csv"); // Initialize the search engine
 
     int server_fd, new_socket; // Declare server and new socket file descriptors
     struct sockaddr_in address; // Declare address structure

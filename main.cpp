@@ -4,7 +4,7 @@
 #include <string> // Include the string library for string manipulation
 
 int main() { // Main function
-    SearchEngine searchEngine("docs", "fnsavefile.csv", "osavefile.csv", "nsavefile.csv", "wsavefile.csv"); // Create a SearchEngine object with specified parameters
+    SearchEngine searchEngine("docs", "fnsavefile.csv", "osavefile.csv", "nsavefile.csv", "wsavefile.csv", "fsavefile.csv"); // Create a SearchEngine object with specified parameters
 
     std::string query; // Declare a string to hold the search query
     char choice; // Declare a char to hold the user's choice

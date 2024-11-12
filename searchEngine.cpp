@@ -4,58 +4,56 @@
 
 namespace fs = std::filesystem; // Create an alias for the std::filesystem namespace
 
-SearchEngine::SearchEngine(const std::string& folderPath, const std::string &filenamepath, const std::string& osavePath, const std::string& nsavePath, const std::string& wsavePath) {
-    if (!wordMap.load(filenamepath, osavePath, nsavePath, wsavePath)) { // Load the word map, if it fails, build from scratch
+SearchEngine::SearchEngine(const std::string& folderPath, const std::string &filenamepath, const std::string& osavePath, const std::string& nsavePath, const std::string& wsavePath, const std::string& fsavePath) {
+    if (!wordMap.load(filenamepath, osavePath, nsavePath, wsavePath, fsavePath)) { // Load the word map, if it fails, build from scratch
         buildFromScratch(folderPath); // Build the word map from scratch
-        wordMap.save(filenamepath, osavePath, nsavePath, wsavePath); // Save the word map to the specified paths
+        wordMap.save(filenamepath, osavePath, nsavePath, wsavePath, fsavePath); // Save the word map to the specified paths
     }
 }
 
 SearchEngine::~SearchEngine() {} // Destructor for the SearchEngine class
 
-std::unordered_set<std::string> SearchEngine::search(const std::string& searchTerms) const {
-    auto start = std::chrono::high_resolution_clock::now(); // Start the timer
+std::vector<std::string> SearchEngine::search(const std::string& searchTerms) const {
+    auto start = std::chrono::high_resolution_clock::now();
 
-    std::unordered_set<std::string> result; // Initialize the result set
+    std::unordered_map<std::string, int> result; // Map to store file paths and their relevancy scores
     std::unordered_set<std::string> terms = parse(searchTerms); // Parse the search terms
 
-    if (terms.empty()) { // If no terms were parsed, return an empty result set
-        return result;
+    if (terms.empty()) {
+        return {};
     }
 
-    bool firstTerm = true; // Flag to check if it's the first term
-    for (const auto& term : terms) { // Iterate over each search term
-        std::unordered_set<std::string> files; // Initialize the set of files for the current term
-        if (term.rfind("org:", 0) == 0) { // Check if the term is an organization
-            files = wordMap.getFilesByOrg(term.substr(4)); // Get files by organization
-        } else if (term.rfind("person:", 0) == 0) { // Check if the term is a person
-            std::cout << "Searching for " << term.substr(7) << std::endl; // Print the search term
-            files = wordMap.getFilesByName(term.substr(7)); // Get files by person name
-        } else if (term.rfind("-", 0) == 0) { // Check if the term is a negation
-            files = wordMap.getOtherFilesByWord(term.substr(1)); // Get files by negated word
+    for (const auto& term : terms) {
+        std::unordered_map<std::string, int> files;
+        if (term.rfind("org:", 0) == 0) {
+            files = wordMap.getFilesByOrg(term.substr(4));
+        } else if (term.rfind("person:", 0) == 0) {
+            files = wordMap.getFilesByName(term.substr(7));
         } else {
-            files = wordMap.getFilesByWord(term); // Get files by word
+            files = wordMap.getFilesByWord(term);
         }
 
-        if (firstTerm) { // If it's the first term
-            result = files; // Set the result to the current files
-            firstTerm = false; // Set the flag to false
-        } else {
-            std::unordered_set<std::string> intersection; // Initialize the intersection set
-            for (const auto& file : result) { // Iterate over the result set
-                if (files.find(file) != files.end()) { // If the file is in the current files set
-                    intersection.insert(file); // Add the file to the intersection set
-                }
-            }
-            result = intersection; // Set the result to the intersection set
+        for (const auto& file : files) {
+            result[file.first] += file.second; // Aggregate relevancy scores
         }
     }
-    
-    auto end = std::chrono::high_resolution_clock::now(); // End the timer
-    std::chrono::duration<double> duration = end - start; // Calculate the duration
-    std::cout << result.size() << " results for " << searchTerms << " in " << duration.count() << " seconds.\n"; // Print the results and duration
 
-    return result; // Return the result set
+    // Convert the result map to a vector and sort by relevancy score
+    std::vector<std::pair<std::string, int>> sortedResults(result.begin(), result.end());
+    std::sort(sortedResults.begin(), sortedResults.end(), [](const auto& a, const auto& b) {
+        return b.second < a.second; // Sort in descending order of relevancy score
+    });
+
+    std::vector<std::string> finalResults;
+    for (const auto& file : sortedResults) {
+        finalResults.push_back(file.first);
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration = end - start;
+    std::cout << finalResults.size() << " results for " << searchTerms << " in " << duration.count() << " seconds.\n";
+
+    return finalResults;
 }
 
 void SearchEngine::buildFromScratch(const std::string& folderPath) {

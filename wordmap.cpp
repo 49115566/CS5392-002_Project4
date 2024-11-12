@@ -5,36 +5,39 @@ WordMap::WordMap() {} // Constructor
 WordMap::~WordMap() {} // Destructor
 
 void WordMap::associateOrg(const std::string &org, const std::string &filepath) {
-    auto it = toid.find(filepath); // Find filepath in toid map
-    if(it == toid.end()) { // If filepath is not found
-        size_t id = toid.size(); // Get new id
-        it = toid.emplace(filepath, id).first; // Insert filepath with new id
-        tofile[id] = filepath; // Map id to filepath
+    auto it = toid.find(filepath);
+    if(it == toid.end()) {
+        size_t id = toid.size();
+        it = toid.emplace(filepath, id).first;
+        tofile[id] = filepath;
     }
 
-    orgmap[org].emplace(it->second); // Associate org with id
+    orgmap[org].emplace(it->second);
+    wordFrequency[org][it->second]++;
 }
 
 void WordMap::associateName(const std::string &name, const std::string &filepath) {
-    auto it = toid.find(filepath); // Find filepath in toid map
-    if(it == toid.end()) { // If filepath is not found
-        size_t id = toid.size(); // Get new id
-        it = toid.emplace(filepath, id).first; // Insert filepath with new id
-        tofile[id] = filepath; // Map id to filepath
+    auto it = toid.find(filepath);
+    if(it == toid.end()) {
+        size_t id = toid.size();
+        it = toid.emplace(filepath, id).first;
+        tofile[id] = filepath;
     }
 
-    namemap[name].emplace(it->second); // Associate name with id
+    namemap[name].emplace(it->second);
+    wordFrequency[name][it->second]++;
 }
 
 void WordMap::associateWord(const std::string &word, const std::string &filepath) {
-    auto it = toid.find(filepath); // Find filepath in toid map
-    if(it == toid.end()) { // If filepath is not found
-        size_t id = toid.size(); // Get new id
-        it = toid.emplace(filepath, id).first; // Insert filepath with new id
-        tofile[id] = filepath; // Map id to filepath
+    auto it = toid.find(filepath);
+    if(it == toid.end()) {
+        size_t id = toid.size();
+        it = toid.emplace(filepath, id).first;
+        tofile[id] = filepath;
     }
 
-    wordmap[word].emplace(it->second); // Associate word with id
+    wordmap[word].emplace(it->second);
+    wordFrequency[word][it->second]++;
 }
 
 void WordMap::disassociate(const std::string &word, const std::string &filepath) {
@@ -58,28 +61,28 @@ void WordMap::disassociate(const std::string &word, const std::string &filepath)
     }
 }
 
-std::unordered_set<std::string> WordMap::getFilesByOrg(const std::string &word) const {
-    std::unordered_set<std::string> files; // Set to store filepaths
-    if (orgmap.find(word) != orgmap.end()) { // If word is found in orgmap
-        for (const auto &id : orgmap.at(word)) { // For each id associated with word
-            files.insert(tofile.at(id)); // Insert filepath associated with id
+std::unordered_map<std::string, int> WordMap::getFilesByOrg(const std::string &word) const {
+    std::unordered_map<std::string, int> files;
+    if (orgmap.find(word) != orgmap.end()) {
+        for (const auto &id : orgmap.at(word)) {
+            files[tofile.at(id)] = wordFrequency.at(word).at(id);
         }
     }
-    return files; // Return set of filepaths
+    return files;
 }
 
-std::unordered_set<std::string> WordMap::getFilesByName(const std::string &name) const {
-    std::unordered_set<std::string> files; // Set to store filepaths
-    if (namemap.find(name) != namemap.end()) { // If name is found in namemap
-        for (const auto &id : namemap.at(name)) { // For each id associated with name
-            files.insert(tofile.at(id)); // Insert filepath associated with id
+std::unordered_map<std::string, int> WordMap::getFilesByName(const std::string &name) const {
+    std::unordered_map<std::string, int> files;
+    if (namemap.find(name) != namemap.end()) {
+        for (const auto &id : namemap.at(name)) {
+            files[tofile.at(id)] = wordFrequency.at(name).at(id);
         }
     }
-    return files; // Return set of filepaths
+    return files;
 }
 
-std::unordered_set<std::string> WordMap::getOtherFilesByWord(const std::string &word) const {
-    std::unordered_set<std::string> files; // Set to store filepaths
+std::unordered_map<std::string, int> WordMap::getOtherFilesByWord(const std::string &word) const {
+    std::unordered_map<std::string, int> files; // Map to store filepaths and their weights
     std::unordered_set<int> excluded_ids; // Set to store excluded ids
     
     if (wordmap.find(word) != wordmap.end()) { // If word is found in wordmap
@@ -88,30 +91,31 @@ std::unordered_set<std::string> WordMap::getOtherFilesByWord(const std::string &
     
     for (const auto &pair : tofile) { // For each id-filepath pair
         if (excluded_ids.find(pair.first) == excluded_ids.end()) { // If id is not in excluded_ids
-            files.insert(pair.second); // Insert filepath
+            files[pair.second] = wordFrequency.at(word).at(pair.first); // Insert filepath and its weight
         }
     }
     
-    return files; // Return set of filepaths
+    return files; // Return map of filepaths and their weights
 }
 
-std::unordered_set<std::string> WordMap::getFilesByWord(const std::string &word) const {
-    std::unordered_set<std::string> files; // Set to store filepaths
-    if (wordmap.find(word) != wordmap.end()) { // If word is found in wordmap
-        for (const auto &id : wordmap.at(word)) { // For each id associated with word
-            files.insert(tofile.at(id)); // Insert filepath associated with id
+std::unordered_map<std::string, int> WordMap::getFilesByWord(const std::string &word) const {
+    std::unordered_map<std::string, int> files;
+    if (wordmap.find(word) != wordmap.end()) {
+        for (const auto &id : wordmap.at(word)) {
+            files[tofile.at(id)] = wordFrequency.at(word).at(id);
         }
     }
-    return files; // Return set of filepaths
+    return files;
 }
 
-void WordMap::save(const std::string &filenamepath, const std::string &ofilepath, const std::string &nfilepath, const std::string &wfilepath) const {
+void WordMap::save(const std::string &filenamepath, const std::string &ofilepath, const std::string &nfilepath, const std::string &wfilepath, const std::string &ffilepath) const {
     std::ofstream fnofs(filenamepath); // Open file for saving filemap
     std::ofstream oofs(ofilepath); // Open file for saving orgmap
     std::ofstream nofs(nfilepath); // Open file for saving namemap
     std::ofstream wofs(wfilepath); // Open file for saving wordmap
-    if (!fnofs.is_open() || !oofs.is_open() || !nofs.is_open() || !wofs.is_open()) { // If any file fails to open
-        std::cerr << "Failed to open file for saving: " << filenamepath << ", " << ofilepath << ", " << nfilepath << ", and/or" << wfilepath << std::endl; // Print error message
+    std::ofstream fofs(ffilepath); // Open file for saving wordFrequency
+    if (!fnofs.is_open() || !oofs.is_open() || !nofs.is_open() || !wofs.is_open() || !fofs.is_open()) { // If any file fails to open
+        std::cerr << "Failed to open file for saving: " << filenamepath << ", " << ofilepath << ", " << nfilepath << ", " << wfilepath << ", and/or " << ffilepath << std::endl; // Print error message
         return; // Return from function
     }
     
@@ -155,18 +159,30 @@ void WordMap::save(const std::string &filenamepath, const std::string &ofilepath
 
     std::cout << "Wordmap saved!" << std::endl; // Print message
 
+    for (const auto &pair : wordFrequency) { // For each word-frequency map pair
+        fofs << pair.first; // Save word
+        for (const auto &freq : pair.second) { // For each file id-frequency pair
+            fofs << " " << freq.first << ":" << freq.second; // Save file id and frequency
+        }
+        fofs << "\n"; // New line
+    }
+    fofs.close(); // Close wordFrequency file
+
+    std::cout << "WordFrequency saved!" << std::endl; // Print message
+
     auto end = std::chrono::high_resolution_clock::now(); // Get end time
     std::chrono::duration<double> duration = end - start; // Calculate duration
     std::cout << "Files saved in " << duration.count() << " seconds.\n"; // Print duration
 }
 
-bool WordMap::load(const std::string &filenamepath, const std::string &ofilepath, const std::string &nfilepath, const std::string &wfilepath) {
+bool WordMap::load(const std::string &filenamepath, const std::string &ofilepath, const std::string &nfilepath, const std::string &wfilepath, const std::string &ffilepath) {
     std::ifstream fnifs(filenamepath); // Open file for loading filemap
     std::ifstream oifs(ofilepath); // Open file for loading orgmap
     std::ifstream nifs(nfilepath); // Open file for loading namemap
     std::ifstream wifs(wfilepath); // Open file for loading wordmap
-    if (!fnifs.is_open() || !oifs.is_open() || !nifs.is_open() || !wifs.is_open()) { // If any file fails to open
-        std::cerr << "Failed to open file for loading: " << filenamepath << ", " << ofilepath << ", " << nfilepath << ", and/or " << wfilepath << std::endl; // Print error message
+    std::ifstream fifs(ffilepath); // Open file for loading wordFrequency
+    if (!fnifs.is_open() || !oifs.is_open() || !nifs.is_open() || !wifs.is_open() || !fifs.is_open()) { // If any file fails to open
+        std::cerr << "Failed to open file for loading: " << filenamepath << ", " << ofilepath << ", " << nfilepath << ", " << wfilepath << ", and/or " << ffilepath << std::endl; // Print error message
         return false; // Return false
     }
 
@@ -228,6 +244,23 @@ bool WordMap::load(const std::string &filenamepath, const std::string &ofilepath
     wifs.close(); // Close wordmap file
 
     std::cout << "Wordmap loaded!" << std::endl; // Print message
+
+    wordFrequency.clear(); // Clear wordFrequency
+    while (std::getline(fifs, line)) { // Read each line
+        std::istringstream iss(line); // Create string stream
+        std::string word; // String to store word
+        iss >> word; // Read word
+        std::string freqPair; // String to store file id and frequency pair
+        while (iss >> freqPair) { // Read each file id and frequency pair
+            size_t pos = freqPair.find(':'); // Find position of colon
+            int id = std::stoi(freqPair.substr(0, pos)); // Extract file id
+            int freq = std::stoi(freqPair.substr(pos + 1)); // Extract frequency
+            wordFrequency[word][id] = freq; // Insert file id and frequency into wordFrequency
+        }
+    }
+    fifs.close(); // Close wordFrequency file
+
+    std::cout << "WordFrequency loaded!" << std::endl; // Print message
 
     auto end = std::chrono::high_resolution_clock::now(); // Get end time
     std::chrono::duration<double> duration = end - start; // Calculate duration

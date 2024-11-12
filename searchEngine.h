@@ -9,13 +9,13 @@
 class SearchEngine { // Define the SearchEngine class
 public: // Public access specifier
     // Constructor
-    SearchEngine(const std::string& folderPath, const std::string& filenamepath, const std::string& osavePath, const std::string& nsavePath, const std::string& wsavePath); // Constructor declaration
+    SearchEngine(const std::string& folderPath, const std::string &filenamepath, const std::string& osavePath, const std::string& nsavePath, const std::string& wsavePath, const std::string& fsavePath);
 
     // Destructor
     ~SearchEngine(); // Destructor declaration
 
     // Function to search for a word
-    std::unordered_set<std::string> search(const std::string& searchTerms) const; // Function to search for a word
+    std::vector<std::string> search(const std::string& searchTerms) const; // Function to search for a word
 
 private: // Private access specifier
     WordMap wordMap; // Instance of WordMap
